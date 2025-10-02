@@ -10,11 +10,11 @@ void SystemCoreClockUpdate();
 int main(void)
 {
 	HAL_Init();
-	SystemCoreClockUpdate();
+//	SystemCoreClockUpdate();
 	return 0;
 }
 
-void SystemCoreClockUpdate()
-{
-
-}
+//void SystemCoreClockUpdate()
+//{
+//
+//}
