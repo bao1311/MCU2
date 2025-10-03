@@ -20,7 +20,7 @@ int main(void)
 
 void UART2_Init(void)
 {
-	huart2.Instance = USART2_BASE;
+	huart2.Instance = USART2;
 	huart2.Init.BaudRate = 115200;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = 1;
