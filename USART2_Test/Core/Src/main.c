@@ -5,16 +5,30 @@
  *      Author: gphi1
  */
 #include "stm32f4xx.h"
-
+#include "stdint.h"
+#include "string.h"
 void UART2_Init(void);
 void Err_Handler(void);
 void SystemClockConfig(void);
 UART_HandleTypeDef huart2;
+char *msg = "I am Baobao and I am so handsome hehe\r\n";
+void delay()
+{
+	for (int i = 0; i < 1000; ++i)
+	{
+		;
+	}
+}
 int main(void)
 {
 	HAL_Init();
-	SystemClockConfig();
+//	SystemClockConfig();
 	UART2_Init();
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	while (1)
+	{
+		;
+	}
 	return 0;
 }
 
@@ -27,10 +41,12 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
 	// Enable USART2 Clock
 	__HAL_RCC_USART2_CLK_ENABLE();
+	// Enable GPIO Clock
+	__HAL_RCC_GPIOA_CLK_ENABLE();
 	// Pin Configurations
 	GPIO_InitTypeDef gpio;
 	gpio.Alternate = GPIO_AF7_USART2;
-	gpio.Mode = GPIO_MODE_OUTPUT_PP;
+	gpio.Mode = GPIO_MODE_AF_PP;
 	gpio.Pull = GPIO_PULLUP;
 	gpio.Speed = GPIO_SPEED_FAST;
 
@@ -38,7 +54,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 	gpio.Pin = GPIO_PIN_2;
 	HAL_GPIO_Init(GPIOA, &gpio);
 
-	// USART2_TX -> PA3
+	// USART2_RX -> PA3
 	gpio.Pin = GPIO_PIN_3;
 	HAL_GPIO_Init(GPIOA, &gpio);
 
@@ -56,9 +72,10 @@ void UART2_Init(void)
 	huart2.Instance = USART2;
 	huart2.Init.BaudRate = 115200;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
-	huart2.Init.StopBits = 1;
+	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;
 	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
 	if (HAL_UART_Init(&huart2) != HAL_OK)
 	{
 		Err_Handler();
