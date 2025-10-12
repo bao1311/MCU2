@@ -6,6 +6,7 @@
  */
 #include "main.h"
 #include "stdio.h"
+#include "string.h"
 UART_HandleTypeDef huart2;
 void Err_Handler();
 void UART2_Init(void);
@@ -13,7 +14,28 @@ int main(void)
 {
 	HAL_Init();
 
-	uint8_t msg[100];
+	char msg[100];
+
+	/*
+	 * Test seeing the Clock frequency when clk_source is HSI
+	 */
+	UART2_Init();
+	memset(msg, 0, sizeof(msg));
+	sprintf(msg, "SysCLK: %ld\r\n", HAL_RCC_GetSysClockFreq());
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+	memset(msg, 0, sizeof(msg));
+	sprintf(msg, "HCLK: %ld\r\n", HAL_RCC_GetHCLKFreq());
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+
+	memset(msg, 0, sizeof(msg));
+	sprintf(msg, "PCLK1: %ld\r\n", HAL_RCC_GetPCLK1Freq());
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+	memset(msg, 0, sizeof(msg));
+	sprintf(msg, "PCLK2: %ld\r\n", HAL_RCC_GetPCLK2Freq());
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	// Initial configuration of the clock and oscillator
 	RCC_ClkInitTypeDef clk_init;
 	RCC_OscInitTypeDef osc_init;
@@ -41,6 +63,7 @@ int main(void)
 	clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 	// Configure the clock so it satisfies the requirement
 	HAL_RCC_ClockConfig(&clk_init,0);
+
 	// ------------------------------------------------
 	/* After this line, HSE is enabled*/
 	// ------------------------------------------------
@@ -53,22 +76,22 @@ int main(void)
 	SysTick_Config(HAL_RCC_GetHCLKFreq()/1000);
 	// Cortex timer configuration
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-	memset(&msg, 0, sizeof(msg));
+	memset(msg, 0, sizeof(msg));
 	sprintf(msg, "SysCLK: %ld\r\n", HAL_RCC_GetSysClockFreq());
-	HAL_UART_Transmit(&huart2, msg, sizeof(msg), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
-	memset(&msg, 0, sizeof(msg));
+	memset(msg, 0, sizeof(msg));
 	sprintf(msg, "HCLK: %ld\r\n", HAL_RCC_GetHCLKFreq());
-	HAL_UART_Transmit(&huart2, msg, sizeof(msg), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
 
-	memset(&msg, 0, sizeof(msg));
+	memset(msg, 0, sizeof(msg));
 	sprintf(msg, "PCLK1: %ld\r\n", HAL_RCC_GetPCLK1Freq());
-	HAL_UART_Transmit(&huart2, msg, sizeof(msg), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
-	memset(&msg, 0, sizeof(msg));
+	memset(msg, 0, sizeof(msg));
 	sprintf(msg, "PCLK2: %ld\r\n", HAL_RCC_GetPCLK2Freq());
-	HAL_UART_Transmit(&huart2, msg, sizeof(msg), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	return 0;
 
 }

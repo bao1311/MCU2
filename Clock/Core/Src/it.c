@@ -6,3 +6,10 @@
  */
 
 
+void SysTick_Handler()
+{
+	HAL_IncTick();
+	HAL_SYSTICK_IRQHandler();
+}
+
+
