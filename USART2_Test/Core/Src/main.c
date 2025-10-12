@@ -12,6 +12,13 @@ void Err_Handler(void);
 void SystemClockConfig(void);
 UART_HandleTypeDef huart2;
 char *msg = "I am Baobao and I am so handsome hehe\r\n";
+uint8_t capitalize(uint8_t c)
+{
+	if ('a' <= c && c <= 'z')
+		return c - ('a' - 'A');
+	else
+		return c;
+}
 void delay()
 {
 	for (int i = 0; i < 1000; ++i)
@@ -25,6 +32,25 @@ int main(void)
 //	SystemClockConfig();
 	UART2_Init();
 	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+	uint8_t rcvd_data;
+	uint8_t rcvd_buffer[100];
+	uint32_t count=0;
+	while(1)
+	{
+		HAL_UART_Receive(&huart2, &rcvd_data, 1, HAL_MAX_DELAY);
+		if (rcvd_data == '\r')
+		{
+			break;
+		}
+		else
+		{
+			rcvd_buffer[count++] = capitalize(rcvd_data);
+		}
+	}
+	rcvd_buffer[count++] = '\r';
+	HAL_UART_Transmit(&huart2, rcvd_buffer, count, HAL_MAX_DELAY);
+
 	while (1)
 	{
 		;
