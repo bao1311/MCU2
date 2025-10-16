@@ -12,5 +12,7 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_gpio.h"
 
+//extern TIM_HandleTypeDef htimer6;
+
 
 #endif /* INC_MAIN_APP_H_ */

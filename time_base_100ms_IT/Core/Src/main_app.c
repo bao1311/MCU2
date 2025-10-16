@@ -5,10 +5,12 @@
  *      Author: gphi1
  */
 #include "main_app.h"
+#include <string.h>
 GPIO_InitTypeDef gpioLed;
 TIM_HandleTypeDef htimer6;
 void TIMER6_Init();
 void GPIO_Led_Init();
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 int main()
 {
 	HAL_Init();
@@ -16,14 +18,19 @@ int main()
 
 	TIMER6_Init();
 //	HAL_TIM_Base_Start(&htimer6);
-	// Hae
+	// Begin the Timer Interrupt
 	HAL_TIM_Base_Start_IT(&htimer6);
+	while (1)
+	{
+		;
+	}
 	return 0;
 }
 
-void TIM6_DAC_IRQHandler()
-{
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
 }
 
 void GPIO_Led_Init()
@@ -64,6 +71,11 @@ void TIMER6_Init()
 	// Deduct 1 because of the one more up cycle
 	htimer6.Init.Period = 32000-1;
 	HAL_TIM_Base_Init(&htimer6);
+
+
+	HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 2, 0);
+	HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
 
 }
 
