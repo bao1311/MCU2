@@ -7,10 +7,11 @@
 #include "stm32f4xx.h"
 #include "stdint.h"
 #include "string.h"
+UART_HandleTypeDef huart2;
 void UART2_Init(void);
 void Err_Handler(void);
 void SystemClockConfig(void);
-UART_HandleTypeDef huart2;
+
 char *msg = "I am Baobao and I am so handsome hehe\r\n";
 uint8_t capitalize(uint8_t c)
 {
