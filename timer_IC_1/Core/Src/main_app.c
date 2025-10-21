@@ -13,31 +13,84 @@ TIM_HandleTypeDef htimer2;
 #define SYSCLK_FREQ_84_MHz			1
 #define SYSCLK_FREQ_120_MHz			2
 #define SYSCLK_FREQ_168_MHz			3
+#define TRUE						1
+#define FALSE						0
+uint32_t arr[2] = {0};
+uint8_t count = 1;
+uint8_t done = 0;
 void TIMER6_Init();
 void TIMER2_Init();
 void GPIO_Led_Init();
+void LSE_Configuration();
 void SystemClockConfig(uint8_t SYSCLKFreq);
 void Err_Handler(void);
 //void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 int main()
 {
 	HAL_Init();
-	SystemClockConfig(SYSCLK_FREQ_50_MHz);
+	//SystemClockConfig(SYSCLK_FREQ_50_MHz);
 	GPIO_Led_Init();
-	TIMER2_Init();
 	LSE_Configuration();
-	HAL_TIM_Base_Start_IT(&htimer6);
+	TIMER2_Init();
+	uint32_t time = 0;
+	//SystemClockConfig(SYSCLK_FREQ_50_MHz);
+//	HAL_TIM_Base_Start_IT(&htimer6);
+	// Enable Input Capture Interrupt of Timer 2
+	HAL_TIM_IC_Start_IT(&htimer2, TIM_CHANNEL_1);
 	while (1)
 	{
-		;
+		if (done)
+		{
+			char* msg = "";
+			if (arr[1] > arr[0])
+			{
+				time = arr[1] - arr[0];
+				count++;
+			}
+			else
+			{
+				time = 0xFFFF - arr[0] + arr[1];
+				done = 0;
+			}
+
+		}
 	}
 	return 0;
+}
+
+void LSE_Configuration()
+{
+	RCC_OscInitTypeDef osc_init;
+	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+//	osc_init.LSEState = RCC_LSE_BYPASS;
+	osc_init.HSIState = RCC_HSI_ON;
+	if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
+	{
+		Err_Handler();
+	}
+
+	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCOSOURCE_HSI, RCC_MCODIV_5);
+
 }
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	if (!done)
+	{
+		if (count == 1)
+			arr[0] = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
+		else
+		{
+			arr[1] = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
+			done = 1;
+		}
+	}
 }
 
 void GPIO_Led_Init()
@@ -59,7 +112,26 @@ void GPIO_Led_Init()
 
 void TIMER2_Init()
 {
+	// Reset htimer2 to default state
 	memset(&htimer2, 0, sizeof(htimer2));
+
+
+	// Config TIMER2 configuration for Input Capture
+	htimer2.Instance = TIM2;
+	/*
+	 * Stats:
+	 * + Prescaler: 1
+	 * + Period: 0xFFFFFFFF
+	 * + CounterMode: UP
+	 */
+	htimer2.Init.Prescaler = 1;
+	htimer2.Init.Period = 0xFFFFFFFF;
+	htimer2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	// Init TIMER2
+	if (HAL_TIM_IC_Init(&htimer2) != HAL_OK)
+	{
+		Err_Handler();
+	}
 
 }
 
@@ -103,8 +175,10 @@ void SystemClockConfig(uint8_t SYSCLKFreq)
 	// Reset the osc_init to avoid garbage value
 	memset(&osc_init,0,sizeof(osc_init));
 	// Config for the oscillator (PLL, with clock source HSI)
-	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	osc_init.HSEState = RCC_HSE_ON;
+	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
+//	osc_init.HSEState = RCC_HSE_ON;
+	// Config for LSEState
+	osc_init.LSEState = RCC_LSE_ON;
 
 	switch (SYSCLKFreq) {
 		case SYSCLK_FREQ_50_MHz:
