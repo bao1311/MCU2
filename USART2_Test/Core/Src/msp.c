@@ -6,6 +6,39 @@
  */
 
 #include "stm32f4xx_hal.h"
+void HAL_UART_MspInit(UART_HandleTypeDef *huart)
+{
+
+	/*
+	 * Low level configuration
+	 */
+
+	// Enable USART2 Clock
+	__HAL_RCC_USART2_CLK_ENABLE();
+	// Enable GPIO Clock
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	// Pin Configurations
+	GPIO_InitTypeDef gpio;
+	gpio.Alternate = GPIO_AF7_USART2;
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Pull = GPIO_PULLUP;
+	gpio.Speed = GPIO_SPEED_FAST;
+
+	// USART2_TX -> PA2
+	gpio.Pin = GPIO_PIN_2;
+	HAL_GPIO_Init(GPIOA, &gpio);
+
+	// USART2_RX -> PA3
+	gpio.Pin = GPIO_PIN_3;
+	HAL_GPIO_Init(GPIOA, &gpio);
+
+	// NVIC Configuration Enable Interrupt
+	HAL_NVIC_EnableIRQ(USART2_IRQn);
+
+	// Interrupt priority set
+	HAL_NVIC_SetPriority(USART2_IRQn, 15, 0);
+
+}
 void HAL_MspInit(void)
 {
 	// This file will do the low level processor specific inits
