@@ -10,6 +10,7 @@
 #define DS18B20_PIN		GPIO_PIN_1
 void GPIO_Init();
 void DS18B20_ReadTemp();
+void delay_us(int microsec);
 int main(void)
 {
 	HAL_Init();
@@ -26,12 +27,17 @@ int main(void)
 
 
 }
+// Delay with microsecond version
+void delay_us(uint32_t microsec)
+{
+	for (uint32_t i = 0; i < microsec * 10; ++i);
+}
 
 // OneWire_Initialization for the one-wire communication
 void OneWire_Initialization()
 {
 	// Status of the presence of DS18B20
-
+	uint8_t presence = 0;
 	// Sending a reset pulse by pulling the line low
 	// from master
 	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
