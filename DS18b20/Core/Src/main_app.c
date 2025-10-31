@@ -6,6 +6,8 @@
  */
 #include "main_app.h"
 #include <stdio.h>
+#define DS18B20_PORT	GPIOA
+#define DS18B20_PIN		GPIO_PIN_1
 void GPIO_Init();
 void DS18B20_ReadTemp();
 int main(void)
@@ -25,6 +27,20 @@ int main(void)
 
 }
 
+// OneWire_Initialization for the one-wire communication
+void OneWire_Initialization()
+{
+	// Status of the presence of DS18B20
+
+	// Sending a reset pulse by pulling the line low
+	// from master
+	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
+	// Wait for 480 microsecond
+	// Master release the bus
+	// Wait 15-60 microsec
+
+
+}
 
 void DS18B20_ReadTemp()
 {
