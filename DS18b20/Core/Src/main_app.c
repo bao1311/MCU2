@@ -11,6 +11,7 @@
 void GPIO_Init();
 void DS18B20_ReadTemp();
 void delay_us(int microsec);
+void OneWire_WriteBit(uint8_t bit);
 int main(void)
 {
 	HAL_Init();
@@ -27,6 +28,41 @@ int main(void)
 
 
 }
+
+// One wire write byte protocol
+void OneWire_WriteByte(uint8_t byte)
+{
+	// Transfer bit by bit through the wire
+	while (byte)
+	{
+		// Extract the innermost bit
+		uint8_t cur = byte & 1;
+		OneWire_WriteBit(cur);
+		byte >>= 1;
+	}
+}
+// One wire write bit protocol
+void OneWire_WriteBit(uint8_t bit)
+{
+	// Write time slots are initiated by master pulling
+	// the line low
+	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
+	delay_us(1);
+	if (bit)
+	{
+		// Generate Write 1 Time slot
+		HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
+		delay_us(15);
+
+
+	}
+	else
+	{
+		// Generate Write 0 Time slot
+		HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
+		delay_us(60);
+	}
+}
 // Delay with microsecond version
 void delay_us(uint32_t microsec)
 {
@@ -42,10 +78,29 @@ void OneWire_Initialization()
 	// from master
 	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
 	// Wait for 480 microsecond
+	delay_us(480);
 	// Master release the bus
+	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
 	// Wait 15-60 microsec
+	delay_us(60);
+	// Extract the presence pulse
+	presence = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
+	// Check whether the DS18B20 module exist on the line or not
+	if (presence != 0)
+	{
+		Err_Handler();
+	}
 
 
+	return presence;
+}
+
+void Err_Handler()
+{
+	while (1)
+	{
+		;
+	}
 }
 
 void DS18B20_ReadTemp()
