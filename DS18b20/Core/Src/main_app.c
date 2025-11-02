@@ -15,15 +15,31 @@
  * DS18B20 ROM and Function Commands Macros
  */
 // ---------- Function Commands ---------------
-#define Convert_T		0x44
+#define Convert_T			0x44
+#define Write_Scratchpad	0x4E
+#define Read_Scratchpad		0xBE
+#define Copy_Scratchpad		0x48
+#define Recall_E_2			0xB8
+#define Read_Power_Supply	0xB4
 
 // ---------- ROM Commands ---------------
+#define Search_ROM		0xF0
+#define Read_ROM		0x33
+#define Match_ROM		0x55
 #define Skip_ROM		0xCC
+#define Alarm_Search	0xEC
 
+/*
+ * Function prototypes
+ */
 void GPIO_Init();
 void DS18B20_ReadTemp();
 void delay_us(int microsec);
 void OneWire_WriteBit(uint8_t bit);
+void OneWire_WriteByte(uint8_t byte);
+void OneWire_ReadBit();
+void OneWire_ReadByte();
+//-----------------------------------------
 int main(void)
 {
 	HAL_Init();
