@@ -6,8 +6,20 @@
  */
 #include "main_app.h"
 #include <stdio.h>
+/*
+ * DS18B20 PORT & PIN Specification
+ */
 #define DS18B20_PORT	GPIOA
 #define DS18B20_PIN		GPIO_PIN_1
+/*
+ * DS18B20 ROM and Function Commands Macros
+ */
+// ---------- Function Commands ---------------
+#define Convert_T		0x44
+
+// ---------- ROM Commands ---------------
+#define Skip_ROM		0xCC
+
 void GPIO_Init();
 void DS18B20_ReadTemp();
 void delay_us(int microsec);
@@ -105,7 +117,17 @@ void Err_Handler()
 
 void DS18B20_ReadTemp()
 {
+	uint32_t temp = 0;
+	// Initialization
+	OneWire_Initialization();
+	// Sending ROM command
+	OneWire_WriteByte(Skip_ROM);
+	// Sending Function Commands
+	OneWire_WriteByte(Convert_T);
+	// Extract the temperature conversion
+	temp = OneWire_ReadByte();
 	// Data is transferred in LSB mode
+
 
 }
 
