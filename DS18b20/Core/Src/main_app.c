@@ -30,16 +30,41 @@
 #define Alarm_Search	0xEC
 
 /*
- * Function prototypes
+ * Global variable
+ */
+UART_HandleTypeDef huart2;
+/*
+ * API prototypes
  */
 void GPIO_Init();
 void DS18B20_ReadTemp();
 void delay_us(int microsec);
 void OneWire_WriteBit(uint8_t bit);
 void OneWire_WriteByte(uint8_t byte);
-void OneWire_ReadBit();
-void OneWire_ReadByte();
+void UART2_Init();
+uint8_t OneWire_ReadBit();
+uint8_t OneWire_ReadByte();
 //-----------------------------------------
+/*
+ * @name: 		- UART2_Init
+ */
+void UART2_Init()
+{
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_8;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	if (HAL_UART_Init(&huart2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+
+}
 int main(void)
 {
 	HAL_Init();
@@ -54,6 +79,39 @@ int main(void)
 		delay();
 	}
 
+
+}
+/*
+ * Read Bit/Byte API
+ */
+uint8_t OneWire_ReadBit()
+{
+	uint8_t bit = 0;
+	// Recovery time (1us)
+	delay_us(3);
+	// Master device pulling the 1-Wire bus low
+	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
+	// let the master device pulling low for 1us
+	delay_us(3);
+	// Master device release the bus
+	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
+	// Wait a little before sampling
+	delay_us(10); // Wait ~10-15us
+	// Read the bit
+	bit = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
+	delay_us(60); // Ensure the total of the duration of read time slot (60us);
+	return bit;
+
+}
+uint8_t OneWire_ReadByte()
+{
+	uint8_t byte = 0;
+	for (uint8_t i = 0; i < 8; ++i)
+	{
+		bit = OneWire_ReadBit();
+		byte = (byte << 1) | bit;
+	}
+	return byte;
 
 }
 
