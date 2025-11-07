@@ -43,6 +43,7 @@ TIM_HandleTypeDef htim2;
 /*
  * API prototypes
  */
+void TIM2_Init();
 void SystemClock_Config(uint8_t SYSCLKFreq);
 void GPIO_Init();
 uint8_t DS18B20_ReadTemp();
@@ -53,6 +54,18 @@ void UART2_Init();
 uint8_t OneWire_ReadBit();
 uint8_t OneWire_ReadByte();
 //-----------------------------------------
+
+/*
+ * @fn					- TIM2_Init
+ * @brief				- This function initializes Timer 2
+ * @param				-
+ * @return				- void
+ */
+void TIM2_Init()
+{
+	htim2.
+
+}
 
 /*
  * @fn					- SystemClock_Config
@@ -77,7 +90,8 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			osc_init.PLL.PLLM = 8;
 			osc_init.PLL.PLLN = 50;
 			osc_init.PLL.PLLP = 2;
-
+			osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+			osc_init.PLL.PLLState = RCC_PLL_ON;
 
 			// Initialize osc_init
 			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
@@ -102,7 +116,8 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			osc_init.PLL.PLLM = 8;
 			osc_init.PLL.PLLN = 84;
 			osc_init.PLL.PLLP = 2;
-			osc_init.PLL.PLLSource =
+			osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+			osc_init.PLL.PLLState = RCC_PLL_ON;
 			// Initialize osc_init
 			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
 			{
@@ -125,7 +140,8 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			osc_init.PLL.PLLM = 8;
 			osc_init.PLL.PLLN = 120;
 			osc_init.PLL.PLLP = 2;
-
+			osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+			osc_init.PLL.PLLState = RCC_PLL_ON;
 			// Initialize osc_init
 			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
 			{
@@ -180,6 +196,8 @@ int main(void)
 	// GPIO Init for the DS18b20 on STM32 discovery board
 	UART2_Init();
 	GPIO_Init();
+	// Timer 2 Initialization
+	TIM2_Init();
 	// Check if timer 2 really works at 42MHz
 	uint32_t t1 = __HAL_TIM_GET_COUNTER(&htim2);
 	HAL_Delay(1000);
