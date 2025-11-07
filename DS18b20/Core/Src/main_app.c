@@ -63,8 +63,28 @@ uint8_t OneWire_ReadByte();
  */
 void TIM2_Init()
 {
-	htim2.
+	/*
+	 * APB1 frequency: 42MHz
+	 * Timer 2 configuration detail:
+	 * - Prescaler: 42 - 1
+	 * - Period: 0xFFFFFFFFU
+	 * - Countermode: UP
+	 */
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = 41;
+	htim2.Init.Period = 0xFFFFFFFFU;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
 
+	// Init the TIM 2
+	if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	if (HAL_TIM_Base_Start(&htim2) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 /*

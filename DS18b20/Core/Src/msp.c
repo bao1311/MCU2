@@ -7,6 +7,24 @@
 
 #include "main_app.h"
 
+
+/*
+ * @fn					- HAL_TIM_Base_MspInit
+ * @brief				- Set up the low level of timer 2
+ * @param				- TIM_HandleTypeDef
+ * @return				- void
+ */
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
+{
+	// Enable the clock for Timer 2
+	__HAL_RCC_TIM2_CLK_ENABLE();
+
+	// Config the NVIC enable interrupt
+	HAL_NVIC_EnableIRQ(TIM2_IRQn);
+	// Config the NVIC set the priority
+	HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
+
+}
 /*
  * Configuration details:
  * - PA2: USART2_TX
