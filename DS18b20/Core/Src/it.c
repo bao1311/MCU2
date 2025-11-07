@@ -5,4 +5,10 @@
  *      Author: gphi1
  */
 
+void SysTick_Handler()
+{
+	HAL_IncTick();
+	HAL_SYSTICK_IRQHandler();
+}
+
 

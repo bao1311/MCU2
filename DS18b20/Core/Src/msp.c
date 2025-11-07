@@ -27,16 +27,10 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 	gpio.Pull = GPIO_PULLUP;
 
 	gpio.Pin = GPIO_PIN_2;
-	if (HAL_GPIO_Init(GPIOA, &gpio) != HAL_OK)
-	{
-		Error_Handler();
-	}
+	HAL_GPIO_Init(GPIOA, &gpio);
 	// Configure for PA3
 	gpio.Pin = GPIO_PIN_3;
-	if (HAL_GPIO_Init(GPIOA, &gpio) != HAL_OK)
-	{
-		Error_Handler();
-	}
+	HAL_GPIO_Init(GPIOA, &gpio);
 	// Config the NVIC enable interrupt
 	HAL_NVIC_EnableIRQ(USART2_IRQn);
 	// Config the NVIC set the priority

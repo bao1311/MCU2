@@ -6,6 +6,7 @@
  */
 #include "main_app.h"
 #include <stdio.h>
+#include <string.h>
 /*
  * DS18B20 PORT & PIN Specification
  */
@@ -14,7 +15,7 @@
 /*
  * DS18B20 ROM and Function Commands Macros
  */
-// ---------- Function Commands ---------------
+// ---------- Function Commands Macros ---------------
 #define Convert_T			0x44
 #define Write_Scratchpad	0x4E
 #define Read_Scratchpad		0xBE
@@ -22,29 +23,135 @@
 #define Recall_E_2			0xB8
 #define Read_Power_Supply	0xB4
 
-// ---------- ROM Commands ---------------
+// ---------- ROM Commands Macros ---------------
 #define Search_ROM		0xF0
 #define Read_ROM		0x33
 #define Match_ROM		0x55
 #define Skip_ROM		0xCC
 #define Alarm_Search	0xEC
 
+// ---------- Clock Frequency Macros --------------
+#define SYSCLK_FREQ_50_MHz		0
+#define SYSCLK_FREQ_84_MHz		1
+#define SYSCLK_FREQ_120_MHz		2
+
 /*
  * Global variable
  */
 UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim2;
 /*
  * API prototypes
  */
+void SystemClock_Config(uint8_t SYSCLKFreq);
 void GPIO_Init();
-void DS18B20_ReadTemp();
-void delay_us(int microsec);
+uint8_t DS18B20_ReadTemp();
+void delay_us(uint32_t microsec);
 void OneWire_WriteBit(uint8_t bit);
 void OneWire_WriteByte(uint8_t byte);
 void UART2_Init();
 uint8_t OneWire_ReadBit();
 uint8_t OneWire_ReadByte();
 //-----------------------------------------
+
+/*
+ * @fn					- SystemClock_Config
+ * @brief				- This function modify the System Clock Frequency
+ * @param				- SYSCLKFreq
+ * @return				- void
+ */
+void SystemClock_Config(uint8_t SYSCLKFreq)
+{
+	RCC_OscInitTypeDef osc_init;
+	RCC_ClkInitTypeDef clk_init;
+	// Initialize osc_init
+	/*
+	 * PLL
+	 * Src_Clock: HSI
+	 */
+	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	osc_init.HSIState = RCC_HSI_ON;
+
+	switch (SYSCLKFreq) {
+		case SYSCLK_FREQ_50_MHz:
+			osc_init.PLL.PLLM = 8;
+			osc_init.PLL.PLLN = 50;
+			osc_init.PLL.PLLP = 2;
+
+
+			// Initialize osc_init
+			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
+			{
+				Error_Handler();
+			}
+
+			// Configure that Clock Init
+			clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
+									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
+			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV2;
+			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
+			if (HAL_RCC_ClockConfig(&clk_init, 2) != HAL_OK)
+			{
+				Error_Handler();
+			}
+			break;
+
+		case SYSCLK_FREQ_84_MHz:
+			osc_init.PLL.PLLM = 8;
+			osc_init.PLL.PLLN = 84;
+			osc_init.PLL.PLLP = 2;
+			osc_init.PLL.PLLSource =
+			// Initialize osc_init
+			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
+			{
+				Error_Handler();
+			}
+
+			// Configure that Clock Init
+			clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
+									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
+			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV2;
+			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
+			if (HAL_RCC_ClockConfig(&clk_init, 2) != HAL_OK)
+			{
+				Error_Handler();
+			}
+			break;
+		case SYSCLK_FREQ_120_MHz:
+			osc_init.PLL.PLLM = 8;
+			osc_init.PLL.PLLN = 120;
+			osc_init.PLL.PLLP = 2;
+
+			// Initialize osc_init
+			if (HAL_RCC_OscConfig(&osc_init) != HAL_OK)
+			{
+				Error_Handler();
+			}
+
+			// Configure that Clock Init
+			clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
+									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
+			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV4;
+			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
+			if (HAL_RCC_ClockConfig(&clk_init, 3) != HAL_OK)
+			{
+				Error_Handler();
+			}
+			break;
+
+			break;
+		default:
+			break;
+		}
+
+
+}
 /*
  * @name: 		- UART2_Init
  */
@@ -67,16 +174,28 @@ void UART2_Init()
 }
 int main(void)
 {
+	char debug_msg[80] = "";
 	HAL_Init();
-	SystemClock_Config();
+	SystemClock_Config(SYSCLK_FREQ_84_MHz);
 	// GPIO Init for the DS18b20 on STM32 discovery board
+	UART2_Init();
 	GPIO_Init();
-
+	// Check if timer 2 really works at 42MHz
+	uint32_t t1 = __HAL_TIM_GET_COUNTER(&htim2);
+	HAL_Delay(1000);
+	uint32_t t2 = __HAL_TIM_GET_COUNTER(&htim2);
+	uint32_t ticks = (t2 - t1) & 0xFFFFFFFFU;
+	sprintf(debug_msg, "TIM2 ticks in 1 sec = %lu\r\n", (unsigned long)ticks);
+	HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+	// Send out Hello world
+	strcpy(debug_msg, "Hello, world\r\n");
+	HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
 	while (1)
 	{
 		float temp = DS18B20_ReadTemp();
-		printf("Current temperature is: %.2f Celsius\r\n",temp);
-		delay();
+		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
+		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+		delay_us(1000);
 	}
 
 
@@ -108,7 +227,7 @@ uint8_t OneWire_ReadByte()
 	uint8_t byte = 0;
 	for (uint8_t i = 0; i < 8; ++i)
 	{
-		bit = OneWire_ReadBit();
+		uint8_t bit = OneWire_ReadBit();
 		byte = (byte << 1) | bit;
 	}
 	return byte;
@@ -119,12 +238,10 @@ uint8_t OneWire_ReadByte()
 void OneWire_WriteByte(uint8_t byte)
 {
 	// Transfer bit by bit through the wire
-	while (byte)
+	for (uint8_t i = 0; i < 8; ++i)
 	{
 		// Extract the innermost bit
-		uint8_t cur = byte & 1;
-		OneWire_WriteBit(cur);
-		byte >>= 1;
+		OneWire_WriteBit((byte >> i) & 0x01);
 	}
 }
 // One wire write bit protocol
@@ -172,16 +289,16 @@ void OneWire_Initialization()
 	// Extract the presence pulse
 	presence = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
 	// Check whether the DS18B20 module exist on the line or not
-	if (presence != 0)
+	if (presence == 0)
 	{
-		Err_Handler();
+		Error_Handler();
 	}
 
 
 	return presence;
 }
 
-void Err_Handler()
+void Error_Handler()
 {
 	while (1)
 	{
@@ -189,7 +306,7 @@ void Err_Handler()
 	}
 }
 
-void DS18B20_ReadTemp()
+uint8_t DS18B20_ReadTemp()
 {
 	uint32_t temp = 0;
 	// Initialization
@@ -201,6 +318,7 @@ void DS18B20_ReadTemp()
 	// Extract the temperature conversion
 	temp = OneWire_ReadByte();
 	// Data is transferred in LSB mode
+	return temp;
 
 
 }
@@ -220,6 +338,8 @@ void GPIO_Init()
 	 */
 	gpio.Mode = GPIO_MODE_OUTPUT_OD;
 	gpio.Pin = GPIO_PIN_1;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
 
 	// Init
 	HAL_GPIO_Init(GPIOA, &gpio);
