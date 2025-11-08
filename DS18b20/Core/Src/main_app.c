@@ -45,7 +45,8 @@ TIM_HandleTypeDef htim2;
  */
 void TIM2_Init();
 void SystemClock_Config(uint8_t SYSCLKFreq);
-void GPIO_Init();
+void DS18B20_Init_OUTPUT();
+void DS18B20_Init_INPUT();
 uint8_t DS18B20_ReadTemp();
 void delay_us(uint32_t microsec);
 void OneWire_WriteBit(uint8_t bit);
@@ -53,6 +54,7 @@ void OneWire_WriteByte(uint8_t byte);
 void UART2_Init();
 uint8_t OneWire_ReadBit();
 uint8_t OneWire_ReadByte();
+int main(void);
 //-----------------------------------------
 
 /*
@@ -70,8 +72,10 @@ void TIM2_Init()
 	 * - Period: 0xFFFFFFFFU
 	 * - Countermode: UP
 	 */
+	uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
+	uint32_t tim_clk = ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1) ? pclk1 * 2U : pclk1;
 	htim2.Instance = TIM2;
-	htim2.Init.Prescaler = 41;
+	htim2.Init.Prescaler = (tim_clk / 1000000U) - 1UL;
 	htim2.Init.Period = 0xFFFFFFFFU;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
 
@@ -95,8 +99,8 @@ void TIM2_Init()
  */
 void SystemClock_Config(uint8_t SYSCLKFreq)
 {
-	RCC_OscInitTypeDef osc_init;
-	RCC_ClkInitTypeDef clk_init;
+	RCC_OscInitTypeDef osc_init = {0};
+	RCC_ClkInitTypeDef clk_init = {0};
 	// Initialize osc_init
 	/*
 	 * PLL
@@ -124,8 +128,8 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
 									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
 			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
-			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV2;
-			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
+			clk_init.APB1CLKDivider = RCC_HCLK_DIV2;
+			clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 			if (HAL_RCC_ClockConfig(&clk_init, 2) != HAL_OK)
 			{
 				Error_Handler();
@@ -149,9 +153,9 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
 									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
 			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
-			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV2;
-			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
-			if (HAL_RCC_ClockConfig(&clk_init, 2) != HAL_OK)
+			clk_init.APB1CLKDivider = RCC_HCLK_DIV2;
+			clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
+			if (HAL_RCC_ClockConfig(&clk_init, FLASH_ACR_LATENCY_2WS) != HAL_OK)
 			{
 				Error_Handler();
 			}
@@ -173,8 +177,8 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
 			clk_init.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK  | \
 									RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
 			clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
-			clk_init.APB1CLKDivider = RCC_SYSCLK_DIV4;
-			clk_init.APB2CLKDivider = RCC_SYSCLK_DIV2;
+			clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
+			clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 			if (HAL_RCC_ClockConfig(&clk_init, 3) != HAL_OK)
 			{
 				Error_Handler();
@@ -215,7 +219,10 @@ int main(void)
 	SystemClock_Config(SYSCLK_FREQ_84_MHz);
 	// GPIO Init for the DS18b20 on STM32 discovery board
 	UART2_Init();
-	GPIO_Init();
+	// Test the frequency of PCLK1
+	sprintf(debug_msg, "Clock frequency of PCLK1 is: %lu\r\n", HAL_RCC_GetPCLK1Freq());
+	HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+	DS18B20_Init_OUTPUT();
 	// Timer 2 Initialization
 	TIM2_Init();
 	// Check if timer 2 really works at 42MHz
@@ -235,8 +242,6 @@ int main(void)
 		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
 		delay_us(1000);
 	}
-
-
 }
 /*
  * Read Bit/Byte API
@@ -278,6 +283,8 @@ void OneWire_WriteByte(uint8_t byte)
 	// Transfer bit by bit through the wire
 	for (uint8_t i = 0; i < 8; ++i)
 	{
+		// delay 1 microsec for recovery time
+		delay_us(1);
 		// Extract the innermost bit
 		OneWire_WriteBit((byte >> i) & 0x01);
 	}
@@ -285,29 +292,37 @@ void OneWire_WriteByte(uint8_t byte)
 // One wire write bit protocol
 void OneWire_WriteBit(uint8_t bit)
 {
+	// Control the bus
+	DS18B20_Init_OUTPUT();
 	// Write time slots are initiated by master pulling
 	// the line low
 	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
-	delay_us(1);
 	if (bit)
 	{
-		// Generate Write 1 Time slot
-		HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
-		delay_us(15);
-
-
+		// Delay for 1 microsec
+		delay_us(1);
+		// Release the 1 Wire bus
+		DS18B20_Init_INPUT();
+		// Delay for 45 micro sec for the pull up
+		// pull the bus high
+		delay_us(45);
 	}
 	else
 	{
-		// Generate Write 0 Time slot
-		HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
+		// Continue holding the bus low for 60 microsec
 		delay_us(60);
+		// Release the bus
+		DS18B20_Init_INPUT();
 	}
 }
 // Delay with microsecond version
 void delay_us(uint32_t microsec)
 {
-	for (uint32_t i = 0; i < microsec * 10; ++i);
+	uint32_t tick1 = __HAL_TIM_GET_COUNTER(&htim2);
+	while ((( __HAL_TIM_GET_COUNTER(&htim2) - tick1 ) & 0xFFFFFFFFU) < microsec)
+	{
+		;
+	}
 }
 
 // OneWire_Initialization for the one-wire communication
@@ -317,22 +332,23 @@ void OneWire_Initialization()
 	uint8_t presence = 0;
 	// Sending a reset pulse by pulling the line low
 	// from master
+	DS18B20_Init_OUTPUT();
 	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
 	// Wait for 480 microsecond
 	delay_us(480);
 	// Master release the bus
-	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
-	// Wait 15-60 microsec
-	delay_us(60);
+	DS18B20_Init_INPUT();
+	// delay for 80 microsec
+	delay_us(80);
 	// Extract the presence pulse
 	presence = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
 	// Check whether the DS18B20 module exist on the line or not
-	if (presence == 0)
+	if (presence != 0)
 	{
 		Error_Handler();
 	}
 
-
+	delay_us(480);
 	return presence;
 }
 
@@ -352,7 +368,7 @@ uint8_t DS18B20_ReadTemp()
 	// Sending ROM command
 	OneWire_WriteByte(Skip_ROM);
 	// Sending Function Commands
-	OneWire_WriteByte(Convert_T);
+	OneWire_WriteByte(Read_Scratchpad);
 	// Extract the temperature conversion
 	temp = OneWire_ReadByte();
 	// Data is transferred in LSB mode
@@ -361,7 +377,36 @@ uint8_t DS18B20_ReadTemp()
 
 }
 
-void GPIO_Init()
+void DS18B20_Init_INPUT()
+{
+	// Use PA1 for the one wire protocol
+	// Config the GPIOA Clock
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+
+	GPIO_InitTypeDef gpio;
+
+	/*
+	 * GPIO Info:
+	 * Port: A
+	 * Pin: 1
+	 */
+	gpio.Mode = GPIO_MODE_INPUT;
+	gpio.Pin = GPIO_PIN_1;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
+
+	// Init
+	HAL_GPIO_Init(GPIOA, &gpio);
+}
+
+/*
+ * @fn					- GPIO_Init_OUTPUT
+ * @brief				- This function configure DS18B20
+ * 						Pin as OUTPUT Open Drain
+ * @param				-
+ * @return				-
+ */
+void DS18B20_Init_OUTPUT()
 {
 	// Use PA1 for the one wire protocol
 	// Config the GPIOA Clock
