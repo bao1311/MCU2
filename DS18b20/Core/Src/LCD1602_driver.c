@@ -22,7 +22,20 @@ void LCD1602_SendCMD(uint8_t cmd);
 void LCD1602_SendData(uint8_t data);
 void LCD1602_SendStr(uint8_t* str);
 void LCD1602_SetCursor(uint8_t row, uint8_t col);
+void LCD1602_ClearScreen();
 
+/*
+ * @fn					- LCD1602_ClearScreen
+ * @brief				-
+ * @param				-
+ * @return				-
+ */
+void LCD1602_ClearScreen()
+{
+	LCD1602_SendCMD(LCD_SCREEN_CLEAR);
+	HAL_Delay(5);
+
+}
 /*
  * @fn					- LCD1602_SetCursor
  * @brief				- This function set the position of the cursor
