@@ -218,6 +218,18 @@ int main(void)
 	char debug_msg[80] = "";
 	HAL_Init();
 	SystemClock_Config(SYSCLK_FREQ_84_MHz);
+	// I2C1 Init
+	I2C1Init();
+	// LCD Init phase
+	LCD1602_Init();
+	// LCD set cursor in the first row
+	LCD1602_SetCursor(0, 0);
+	// LCD send data
+	LCD1602_SendData("Hi, I am Bao");
+	// LCD set cursor in the second row
+	LCD1602_SetCursor(1, 0);
+	// LCD Send Data
+	LCD1602_SendData("Hi, I am Gorillas");
 	// GPIO Init for the DS18b20 on STM32 discovery board
 	UART2_Init();
 	// Test the frequency of PCLK1

@@ -19,9 +19,72 @@ extern I2C_HandleTypeDef hi2c1;
  */
 void I2C1Init();
 void LCD1602_Init();
-void LCD1602_SendCMD();
+void LCD1602_SendCMD(uint8_t cmd);
 void LCD1602_SendData();
+void LCD1602_SendStr(uint8_t* str);
+void LCD1602_SetCursor(uint8_t row, uint8_t col);
 
+/*
+ * @fn					- LCD1602_SetCursor
+ * @brief				- This function set the position of the cursor
+ * @param				- row
+ * @param				- col
+ * @return				-
+ */
+void LCD1602_SetCursor(uint8_t row, uint8_t col)
+{
+	uint8_t cmd = 0x80;
+	if (row == 0)
+	{
+		cmd |= col;
+	}
+	else if (row == 1)
+	{
+		cmd |= 0x40;
+		cmd |= col;
+	}
+	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, &cmd, 1, HAL_MAX_DELAY);
+}
+
+/*
+ * @fn					- LCD1602_SendStr
+ * @brief				- API for sending string over to LCD 1602
+ * @param				-
+ * @return				-
+ */
+void LCD1602_SendStr(uint8_t* str)
+{
+	while (*str)
+	{
+		LCD1602_SendData(*str);
+		str++;
+	}
+}
+
+/*
+ * @fn					- LCD1602_SendData
+ * @brief				- API for sending 1 byte Data over to LCD 1602
+ * @param				-
+ * @return				-
+ */
+void LCD1602_SendData(uint8_t data)
+{
+	// Extract upper and lower part of the command
+	uint8_t upper = cmd & 0xF0;
+	uint8_t lower = cmd & 0x0F;
+	// Store them in an array
+	uint8_t data[4] = {};
+	// Changing the Enable bit of the upper 4 bits data
+	data[0] = upper | 0x0D; // E = 1; RS = 1; RW = 0 => P3P2P1P0 = 1101
+	data[1] = upper | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
+	// Changing the Enable bit of the lower 4 bits data
+	data[2] = lower | 0x0D; // E = 1; RS = 1; RW = 0 => P(3->0) = 1101
+	data[3] = lower | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
+
+	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, data, 4, HAL_MAX_DELAY);
+
+
+}
 /*
  * @fn					- LCD1602_SendCMD
  * @brief				- API for sending Command over to LCD 1602
