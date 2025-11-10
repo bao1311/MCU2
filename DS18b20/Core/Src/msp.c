@@ -66,11 +66,13 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
 {
 	if (hi2c->Instance == I2C1)
 	{
+		// Enable clock of GPIOB
+		__HAL_RCC_GPIOB_CLK_ENABLE();
 		/*
 		 * Initialize GPIO (PB6,PB7) for I2C1
 		 */
-		GPIO_InitTypeDef lcd;
-		lcd.Mode = GPIO_MODE_OUTPUT_OD;
+		GPIO_InitTypeDef lcd = {0};
+		lcd.Mode = GPIO_MODE_AF_OD;
 		lcd.Pull = GPIO_NOPULL;
 		lcd.Alternate = GPIO_AF4_I2C1;
 		/*
@@ -79,10 +81,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
 		 * - SCL
 		 */
 		lcd.Pin = GPIO_PIN_6;
-		if (HAL_GPIO_Init(GPIOB, &lcd) != HAL_OK)
-		{
-			Error_Handler();
-		}
+		HAL_GPIO_Init(GPIOB, &lcd);
 
 		/*
 		 * Pin Info:
@@ -90,9 +89,6 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
 		 * - SDA
 		 */
 		lcd.Pin = GPIO_PIN_7;
-		if (HAL_GPIO_Init(GPIOB, &lcd) != HAL_OK)
-		{
-			Error_Handler();
-		}
+		HAL_GPIO_Init(GPIOB, &lcd);
 	}
 }

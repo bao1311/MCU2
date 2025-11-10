@@ -11,17 +11,23 @@
 /*
  * Macros for LCD1602 Module
  */
+#define DEGREE 0xDF
+
+
 // Instruction Set Macros
+#define LCD_SCREEN_CLEAR 0x01
 // Other Macros
-#define LCD1602_ADDR			0x20
 
 /*
  * API for LCD1602 Module Driver
  */
 void I2C1Init();
 void LCD1602_Init();
-void LCD1602_SendCMD();
-void LCD1602_SendData();
+void LCD1602_SendCMD(uint8_t cmd);
+void LCD1602_SendData(uint8_t data);
+void LCD1602_SendStr(uint8_t* str);
+void LCD1602_ClearScreen();
+
 
 
 

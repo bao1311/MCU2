@@ -8,7 +8,6 @@
 #include "main_app.h"
 
 #define LCD1602_ADDR	0x4E
-
 extern I2C_HandleTypeDef hi2c1;
 
 
@@ -20,7 +19,7 @@ extern I2C_HandleTypeDef hi2c1;
 void I2C1Init();
 void LCD1602_Init();
 void LCD1602_SendCMD(uint8_t cmd);
-void LCD1602_SendData();
+void LCD1602_SendData(uint8_t data);
 void LCD1602_SendStr(uint8_t* str);
 void LCD1602_SetCursor(uint8_t row, uint8_t col);
 
@@ -43,7 +42,7 @@ void LCD1602_SetCursor(uint8_t row, uint8_t col)
 		cmd |= 0x40;
 		cmd |= col;
 	}
-	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, &cmd, 1, HAL_MAX_DELAY);
+	LCD1602_SendCMD(cmd);
 }
 
 /*
@@ -70,18 +69,19 @@ void LCD1602_SendStr(uint8_t* str)
 void LCD1602_SendData(uint8_t data)
 {
 	// Extract upper and lower part of the command
-	uint8_t upper = cmd & 0xF0;
-	uint8_t lower = cmd & 0x0F;
+	uint8_t upper = data & 0xF0;
+	uint8_t lower = (data << 4) & 0xF0;
 	// Store them in an array
-	uint8_t data[4] = {};
+	uint8_t arr[4] = {};
 	// Changing the Enable bit of the upper 4 bits data
-	data[0] = upper | 0x0D; // E = 1; RS = 1; RW = 0 => P3P2P1P0 = 1101
-	data[1] = upper | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
+	arr[0] = upper | 0x0D; // E = 1; RS = 1; RW = 0 => P3P2P1P0 = 1101
+	arr[1] = upper | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
 	// Changing the Enable bit of the lower 4 bits data
-	data[2] = lower | 0x0D; // E = 1; RS = 1; RW = 0 => P(3->0) = 1101
-	data[3] = lower | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
+	arr[2] = lower | 0x0D; // E = 1; RS = 1; RW = 0 => P(3->0) = 1101
+	arr[3] = lower | 0x09; // E = 0; RS = 1; RW = 0 => P(3->0) = 1001
 
-	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, data, 4, HAL_MAX_DELAY);
+	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, arr, 4, HAL_MAX_DELAY);
+	HAL_Delay(1);
 
 
 }
@@ -95,7 +95,7 @@ void LCD1602_SendCMD(uint8_t cmd)
 {
 	// Extract upper and lower part of the command
 	uint8_t upper = cmd & 0xF0;
-	uint8_t lower = cmd & 0x0F;
+	uint8_t lower = (cmd << 4) & 0xF0;
 	// Store them in an array
 	uint8_t data[4] = {};
 	// Changing the Enable bit of the upper 4 bits data
@@ -106,19 +106,9 @@ void LCD1602_SendCMD(uint8_t cmd)
 	data[3] = lower | 0x08; // E = 0; RS,RW = 0
 
 	HAL_I2C_Master_Transmit(&hi2c1, LCD1602_ADDR, data, 4, HAL_MAX_DELAY);
+	HAL_Delay(1);
 }
 
-/*
- * @fn					- LCD1602_SendData
- * @brief				- API for sending data over to LCD 1602
- * @param				-
- * @return				-
- */
-void LCD1602_SendData(uint8_t data)
-{
-
-
-}
 
 
 /*
