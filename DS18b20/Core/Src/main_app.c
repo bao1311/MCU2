@@ -47,7 +47,7 @@ void TIM2_Init();
 void SystemClock_Config(uint8_t SYSCLKFreq);
 void DS18B20_Init_OUTPUT();
 void DS18B20_Init_INPUT();
-uint8_t DS18B20_ReadTemp();
+float DS18B20_ReadTemp();
 void delay_us(uint32_t microsec);
 void OneWire_WriteBit(uint8_t bit);
 void OneWire_WriteByte(uint8_t byte);
@@ -240,7 +240,8 @@ int main(void)
 		float temp = DS18B20_ReadTemp();
 		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
 		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
-		delay_us(1000);
+		HAL_Delay(3000);
+//		delay_us(1000000);
 	}
 }
 /*
@@ -249,16 +250,16 @@ int main(void)
 uint8_t OneWire_ReadBit()
 {
 	uint8_t bit = 0;
-	// Recovery time (1us)
-	delay_us(3);
+	// Change bus control to master
+	DS18B20_Init_OUTPUT();
 	// Master device pulling the 1-Wire bus low
 	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
 	// let the master device pulling low for 1us
-	delay_us(3);
+	delay_us(2);
 	// Master device release the bus
-	HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
-	// Wait a little before sampling
-	delay_us(10); // Wait ~10-15us
+	DS18B20_Init_INPUT();
+	// Wait a bit for DS18B20 to send data
+	delay_us(5);
 	// Read the bit
 	bit = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
 	delay_us(60); // Ensure the total of the duration of read time slot (60us);
@@ -270,8 +271,10 @@ uint8_t OneWire_ReadByte()
 	uint8_t byte = 0;
 	for (uint8_t i = 0; i < 8; ++i)
 	{
+		// recovery time (1ms)
+		delay_us(1);
 		uint8_t bit = OneWire_ReadBit();
-		byte = (byte << 1) | bit;
+		byte = (bit << i) | byte;
 	}
 	return byte;
 
@@ -326,7 +329,7 @@ void delay_us(uint32_t microsec)
 }
 
 // OneWire_Initialization for the one-wire communication
-void OneWire_Initialization()
+uint8_t OneWire_Initialization()
 {
 	// Status of the presence of DS18B20
 	uint8_t presence = 0;
@@ -360,17 +363,32 @@ void Error_Handler()
 	}
 }
 
-uint8_t DS18B20_ReadTemp()
+float DS18B20_ReadTemp()
 {
-	uint32_t temp = 0;
-	// Initialization
+	float temp = 0;
+	// Master Reset Pulse
+	OneWire_Initialization();
+	// Sending ROM command
+	OneWire_WriteByte(Skip_ROM);
+	// Sending Convert T
+	OneWire_WriteByte(Convert_T);
+	// Delay 750 millisec
+//	HAL_Delay(750);
+	// Master Reset Pulse
 	OneWire_Initialization();
 	// Sending ROM command
 	OneWire_WriteByte(Skip_ROM);
 	// Sending Function Commands
 	OneWire_WriteByte(Read_Scratchpad);
 	// Extract the temperature conversion
-	temp = OneWire_ReadByte();
+	// temperature is 2 bytes
+	uint8_t lsb = OneWire_ReadByte();
+	uint8_t msb = OneWire_ReadByte();
+
+	int16_t cur = (msb << 8) | lsb;
+	temp = (float)cur;
+	// Convert to Celsius
+	temp = cur * 0.0625f;
 	// Data is transferred in LSB mode
 	return temp;
 
