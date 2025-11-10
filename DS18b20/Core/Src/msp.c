@@ -54,3 +54,45 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 	// Config the NVIC set the priority
 	HAL_NVIC_SetPriority(USART2_IRQn, 15, 0);
 }
+
+
+/**
+  * @brief  Initialize the I2C MSP.
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for the specified I2C.
+  * @retval None
+  */
+void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
+{
+	if (hi2c->Instance == I2C1)
+	{
+		/*
+		 * Initialize GPIO (PB6,PB7) for I2C1
+		 */
+		GPIO_InitTypeDef lcd;
+		lcd.Mode = GPIO_MODE_OUTPUT_OD;
+		lcd.Pull = GPIO_NOPULL;
+		lcd.Alternate = GPIO_AF4_I2C1;
+		/*
+		 * Pin Info:
+		 * - PB6
+		 * - SCL
+		 */
+		lcd.Pin = GPIO_PIN_6;
+		if (HAL_GPIO_Init(GPIOB, &lcd) != HAL_OK)
+		{
+			Error_Handler();
+		}
+
+		/*
+		 * Pin Info:
+		 * - PB7
+		 * - SDA
+		 */
+		lcd.Pin = GPIO_PIN_7;
+		if (HAL_GPIO_Init(GPIOB, &lcd) != HAL_OK)
+		{
+			Error_Handler();
+		}
+	}
+}

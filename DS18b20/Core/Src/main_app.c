@@ -40,6 +40,7 @@
  */
 UART_HandleTypeDef huart2;
 TIM_HandleTypeDef htim2;
+I2C_HandleTypeDef hi2c1;
 /*
  * API prototypes
  */
