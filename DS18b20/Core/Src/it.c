@@ -19,8 +19,6 @@ void EXTI0_IRQHandler()
 
 
 
-volatile extern uint8_t button_pressed = 0;
-volatile extern uint32_t button_pressed_ts = 0;
 /**
   * @brief  EXTI line detection callbacks.
   * @param  GPIO_Pin Specifies the pins connected EXTI line
@@ -28,9 +26,6 @@ volatile extern uint32_t button_pressed_ts = 0;
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0))
-	{
-		button_pressed = 1;
-		button_pressed_ts = HAL_GetTick();
-	}
+	button_pressed = 1;
+	button_pressed_ts = HAL_GetTick();
 }

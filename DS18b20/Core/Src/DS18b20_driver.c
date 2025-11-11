@@ -136,32 +136,6 @@ float DS18B20_ConvertToF(float C)
 {
 	return ((C * 9.0f) / 5.0f) + 32;
 
-	// OneWire_Initialization for the one-wire communication
-	uint8_t OneWire_Initialization()
-	{
-		// Status of the presence of DS18B20
-		uint8_t presence = 0;
-		// Sending a reset pulse by pulling the line low
-		// from master
-		DS18B20_Init_OUTPUT();
-		HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_RESET);
-		// Wait for 480 microsecond
-		delay_us(480);
-		// Master release the bus
-		DS18B20_Init_INPUT();
-		// delay for 80 microsec
-		delay_us(80);
-		// Extract the presence pulse
-		presence = HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN);
-		// Check whether the DS18B20 module exist on the line or not
-		if (presence != 0)
-		{
-			Error_Handler();
-		}
-
-		delay_us(480);
-		return presence;
-	}
 }
 float DS18B20_ReadTempC()
 {

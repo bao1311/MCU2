@@ -14,6 +14,11 @@
 #define SYSCLK_FREQ_120_MHz		2
 
 /*
+ * Btn Macros
+ */
+#define BTN_DEBOUNCE_TIME		25
+
+/*
  * Global variable
  */
 UART_HandleTypeDef huart2;
@@ -25,6 +30,7 @@ GPIO_InitTypeDef btnGpio;
  */
 void TIM2_Init();
 void SystemClock_Config(uint8_t SYSCLKFreq);
+void ShowTemp();
 void delay_us(uint32_t microsec);
 void UART2_Init();
 void Btn_Init();
@@ -36,19 +42,187 @@ volatile uint8_t button_pressed = 0;
 volatile uint32_t button_pressed_ts = 0;
 
 /*
+ * Enum of available state for the app
+ */
+typedef enum
+{
+	INIT = 0,
+	WELCOME,
+	BTN_DEBOUNCE,
+	SHOW_TEMP
+} app_state_t;
+/*
  * Application state
  */
-enum
-{
-	INIT,
-	WELCOME,
-	BTN_PRESS,
-	SHOW_TEMP
-} app_state;
+static volatile app_state_t cur_state = WELCOME;
+static uint32_t last_temp_update_ts = 0;
 
-void go_to_next_state(app_state)
+/*
+ * @fn					- ShowTemp
+ * @brief				- Display temperature on LCD
+ * @param				-
+ * @return				-
+ */
+void ShowTemp()
 {
+		float tempC = DS18B20_ReadTempC();
+		float tempF = DS18B20_ConvertToF(tempC);
 
+		//		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
+//		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+		char printedMsg[16] = "";
+		sprintf(printedMsg, "%.2f%cF(%.2f%cC)", tempF, DEGREE, tempC, DEGREE);
+		// Clear screen
+		LCD1602_ClearScreen();
+		// LCD set cursor in the first row
+		LCD1602_SetCursor(0, 2);
+		// LCD send data first row ask to click on the button of stm board
+		LCD1602_SendStr((uint8_t*)"Current temp");
+		 // LCD set cursor in the second row
+		LCD1602_SetCursor(1, 0);
+		LCD1602_SendStr((uint8_t*)printedMsg);
+}
+
+static volatile uint8_t state_entry = 1;
+void change_state(app_state_t s)
+{
+	cur_state = s;
+	state_entry = 1;
+}
+/*
+ * @fn					- fsm
+ * @brief				-
+ * @param				-
+ * @return				-
+ */
+void fsm()
+{
+	uint32_t now = HAL_GetTick();
+	switch (cur_state) {
+		case INIT:
+			if (state_entry)
+			{
+				change_state(WELCOME);
+				state_entry = 1;
+			}
+			break;
+		case WELCOME:
+			if (state_entry)
+			{
+				Welcome();
+				state_entry = 0;
+			}
+			if (button_pressed)
+			{
+				// Move to DEBOUNCE state
+				change_state(BTN_DEBOUNCE);
+			}
+			else
+			{
+				__WFI(); // Sleep until catch an interrupt
+			}
+			break;
+		case BTN_DEBOUNCE:
+			// Wait until debounce already pass
+			if (now - button_pressed_ts >= BTN_DEBOUNCE_TIME)
+			{
+				// Check if Button is pressed (PA0 == 1)?
+				if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET)
+				{
+					// Move to SHOW_TEMP event
+					change_state(SHOW_TEMP);
+					// Reset the button_press state
+					button_pressed = 0;
+				}
+			}
+			else
+			{
+				// False Debounce signal
+				__WFI();
+			}
+			break;
+		case SHOW_TEMP:
+			// Draw the temperature once
+			if (state_entry)
+			{
+				ShowTemp();
+				last_temp_update_ts = HAL_GetTick();
+				state_entry = 0;
+			}
+			if (HAL_GetTick() - last_temp_update_ts >= 1000)
+			{
+
+				ShowTemp();
+				last_temp_update_ts = HAL_GetTick();
+			}
+			// Check for another Button Press
+			if (button_pressed == 1)
+			{
+				// Get back to WELCOME State
+				change_state(WELCOME);
+				// Reset the button pressed flag
+				button_pressed = 0;
+			}
+			else
+			{
+				// Wait for interrupt
+				__WFI();
+			}
+			break;
+		default:
+			break;
+	}
+
+}
+
+/*
+ * @fn					- Welcome
+ * @brief				- Welcome LCD screen
+ * @param				-
+ * @return				-
+ */
+void Welcome()
+{
+	// Clear screen
+	LCD1602_ClearScreen();
+	// LCD set cursor in the first row
+	LCD1602_SetCursor(0, 0);
+	// LCD send data first row ask to click on the button of stm board
+	LCD1602_SendStr((uint8_t*)"Hello, press for");
+	// LCD set cursor in the second row
+	LCD1602_SetCursor(1, 0);
+	// LCD send string to the row
+	LCD1602_SendStr((uint8_t*)"the temperature");
+
+}
+/*
+ * @fn					- go_to_state
+ * @brief				- State entry action
+ * @param				-
+ * @return				-
+ */
+void go_to_state(app_state_t app_state)
+{
+	app_state_t next_state = app_state;
+	switch (app_state) {
+		case INIT:
+			// Transition to WELCOME screen
+			go_to_state(WELCOME);
+			break;
+		case WELCOME:
+			Welcome();
+			next_state = WELCOME;
+			break;
+		case BTN_DEBOUNCE:
+			break;
+		case SHOW_TEMP:
+			ShowTemp();
+			next_state = SHOW_TEMP;
+			break;
+		default:
+			break;
+	}
+	cur_state = next_state;
 }
 //-----------------------------------------
 
@@ -68,8 +242,8 @@ void Btn_Init()
 	btnGpio.Pin = GPIO_PIN_0;
 	HAL_GPIO_Init(GPIOA, &btnGpio);
 	// Set up the interrupt for button
-	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 	HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
 /*
@@ -234,14 +408,14 @@ int main(void)
 	char debug_msg[80] = "";
 	HAL_Init();
 	SystemClock_Config(SYSCLK_FREQ_84_MHz);
+	// Timer 2 Initialization
+	TIM2_Init();
 	// GPIO Init for the DS18b20 on STM32 discovery board
 	UART2_Init();
 	// Test the frequency of PCLK1
 	sprintf(debug_msg, "Clock frequency of PCLK1 is: %lu\r\n", HAL_RCC_GetPCLK1Freq());
 	HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
 	DS18B20_Init_OUTPUT();
-	// Timer 2 Initialization
-	TIM2_Init();
 	// Button Init
 	Btn_Init();
 	// Check if timer 2 really works at 42MHz
@@ -259,18 +433,51 @@ int main(void)
 	I2C1Init();
 	// LCD Init phase
 	LCD1602_Init();
+	// Assign INIT state
+	cur_state = INIT;
+
 	while (1)
 	{
-		// Clear screen
-		LCD1602_ClearScreen();
-		// LCD set cursor in the first row
-		LCD1602_SetCursor(0, 0);
-		// LCD send data first row ask to click on the button of stm board
-		LCD1602_SendStr((uint8_t*)"Hello, press for");
-		// LCD set cursor in the second row
-		LCD1602_SetCursor(1, 0);
-		// LCD send string to the row
-		LCD1602_SendStr((uint8_t*)"the temperature");
+		fsm();
+//		static uint8_t welcome_display = 0;
+//		if (!welcome_display)
+//		{
+//			welcome_display = 1;
+//		}
+//		// Check if button is pressed
+//		if (button_pressed)
+//		{
+//			// Check for debouncing
+//			// Skip button debouncing logic  && HAL_GetTick() - button_pressed_ts >= 10U
+//			if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET)
+//			{
+//
+//				float tempC = DS18B20_ReadTempC();
+//				float tempF = DS18B20_ConvertToF(tempC);
+//
+//		//		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
+//		//		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+//				char printedMsg[16] = "";
+//				sprintf(printedMsg, "%.2f%cF(%.2f%cC)", tempF, DEGREE, tempC, DEGREE);
+//				// Clear screen
+//				LCD1602_ClearScreen();
+//				// LCD set cursor in the first row
+//				LCD1602_SetCursor(0, 2);
+//				// LCD send data first row ask to click on the button of stm board
+//				LCD1602_SendStr((uint8_t*)"Current temp");
+//		 		// LCD set cursor in the second row
+//				LCD1602_SetCursor(1, 0);
+//				LCD1602_SendStr((uint8_t*)printedMsg);
+//				HAL_Delay(3000);
+//
+//			}
+//			button_pressed = 0;
+//			welcome_display = 0;
+//		}
+//		else
+//		{
+//			__WFI();
+//		}
 //		// wait for the button to be pressed
 //		while (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0));
 //		float tempC = DS18B20_ReadTempC();
@@ -289,7 +496,6 @@ int main(void)
 // 		// LCD set cursor in the second row
 //		LCD1602_SetCursor(1, 0);
 //		LCD1602_SendStr((uint8_t*)printedMsg);
-		HAL_Delay(3000);
 //		delay_us(1000000);
 	}
 }

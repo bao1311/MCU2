@@ -12,4 +12,5 @@
 #include "stm32f4xx_hal.h"
 #include "LCD1602_driver.h"
 #include "DS18b20_driver.h"
+#include "it.h"
 #endif /* INC_MAIN_APP_H_ */
