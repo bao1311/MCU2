@@ -29,6 +29,11 @@ void delay_us(uint32_t microsec);
 void UART2_Init();
 void Btn_Init();
 int main(void);
+/*
+ * Button state
+ */
+volatile uint8_t button_pressed = 0;
+volatile uint32_t button_pressed_ts = 0;
 
 /*
  * Application state
@@ -40,6 +45,11 @@ enum
 	BTN_PRESS,
 	SHOW_TEMP
 } app_state;
+
+void go_to_next_state(app_state)
+{
+
+}
 //-----------------------------------------
 
 /*
@@ -50,9 +60,11 @@ enum
  */
 void Btn_Init()
 {
+	// Enable clock of GPIOA
+	__HAL_RCC_GPIOA_CLK_ENABLE();
 	// Initialize button GPIO at PA0
 	memset(&btnGpio,0,sizeof(btnGpio));
-	btnGpio.Mode = GPIO_MODE_OUTPUT_PP;
+	btnGpio.Mode = GPIO_MODE_IT_RISING;
 	btnGpio.Pin = GPIO_PIN_0;
 	HAL_GPIO_Init(GPIOA, &btnGpio);
 	// Set up the interrupt for button
@@ -230,6 +242,8 @@ int main(void)
 	DS18B20_Init_OUTPUT();
 	// Timer 2 Initialization
 	TIM2_Init();
+	// Button Init
+	Btn_Init();
 	// Check if timer 2 really works at 42MHz
 	uint32_t t1 = __HAL_TIM_GET_COUNTER(&htim2);
 	HAL_Delay(1000);
@@ -257,24 +271,24 @@ int main(void)
 		LCD1602_SetCursor(1, 0);
 		// LCD send string to the row
 		LCD1602_SendStr((uint8_t*)"the temperature");
-		// wait for the button to be pressed
-		while (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0));
-		float tempC = DS18B20_ReadTempC();
-		float tempF = DS18B20_ConvertToF(tempC);
-
-//		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
-//		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
-		char printedMsg[16] = "";
-		sprintf(printedMsg, "%.2f%cF(%.2f%cC)", tempF, DEGREE, tempC, DEGREE);
-		// Clear screen
-		LCD1602_ClearScreen();
-		// LCD set cursor in the first row
-		LCD1602_SetCursor(0, 2);
-		// LCD send data first row ask to click on the button of stm board
-		LCD1602_SendStr((uint8_t*)"Current temp");
- 		// LCD set cursor in the second row
-		LCD1602_SetCursor(1, 0);
-		LCD1602_SendStr((uint8_t*)printedMsg);
+//		// wait for the button to be pressed
+//		while (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0));
+//		float tempC = DS18B20_ReadTempC();
+//		float tempF = DS18B20_ConvertToF(tempC);
+//
+////		sprintf(debug_msg, "Current temperature is: %.2f Celsius\r\n", temp);
+////		HAL_UART_Transmit(&huart2, debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+//		char printedMsg[16] = "";
+//		sprintf(printedMsg, "%.2f%cF(%.2f%cC)", tempF, DEGREE, tempC, DEGREE);
+//		// Clear screen
+//		LCD1602_ClearScreen();
+//		// LCD set cursor in the first row
+//		LCD1602_SetCursor(0, 2);
+//		// LCD send data first row ask to click on the button of stm board
+//		LCD1602_SendStr((uint8_t*)"Current temp");
+// 		// LCD set cursor in the second row
+//		LCD1602_SetCursor(1, 0);
+//		LCD1602_SendStr((uint8_t*)printedMsg);
 		HAL_Delay(3000);
 //		delay_us(1000000);
 	}
