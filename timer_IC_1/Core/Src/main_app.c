@@ -31,7 +31,8 @@ int main()
 {
 	HAL_Init();
 	SystemClockConfig(SYSCLK_FREQ_50_MHz);
-
+	// Debugging tool
+	UART2_Init();
 	uint32_t sys_freq = HAL_RCC_GetSysClockFreq();
 	char debug_msg[100];
 	sprintf(debug_msg, "Frequency of SYSCLK is: %lu Hz \r\n", sys_freq);
@@ -41,16 +42,20 @@ int main()
 	//LSE_Configuration();
 	TIMER2_Init();
 	TIMER6_Init();
-	UART2_Init();
 	uint32_t hsi_cnt = 0;
-	//SystemClockConfig(SYSCLK_FREQ_50_MHz);
+
+	char usr_msg[200] = "";
+	double pclk2 = HAL_RCC_GetPCLK2Freq();
+	double tim6_freq = pclk2 / (1 + htimer6.Init.Prescaler);
+	sprintf(usr_msg, "TIM6 frequency is %.2f Hz (expected: 2500000 Hz)\r\n", tim6_freq);
+	HAL_UART_Transmit(&huart2, (uint8_t*)usr_msg, strlen(usr_msg), HAL_MAX_DELAY);
+//SystemClockConfig(SYSCLK_FREQ_50_MHz);
 //	HAL_TIM_Base_Start_IT(&htimer6);
 	// Enable Input Capture Interrupt of Timer 2
 	// Toggle LED every 50kHz
 	HAL_TIM_Base_Start_IT(&htimer6);
 	//
 //	HAL_TIM_IC_Start_IT(&htimer2, TIM_CHANNEL_1);
-	char usr_msg[200] = "";
 //	char* usr_msg = "Hi, I am here!\r\n";
 //	HAL_UART_Transmit(&huart2, usr_msg, strlen(usr_msg), HAL_MAX_DELAY);
 
@@ -74,6 +79,10 @@ int main()
 
 			sprintf(usr_msg, "HSI Frequency: %.2f Hz (expected: 16000000 Hz)\r\n", hsi_freq);
 			HAL_UART_Transmit(&huart2, (uint8_t*)usr_msg, strlen(usr_msg), HAL_MAX_DELAY);
+
+			sprintf(usr_msg, "------------------------------------------\r\n");
+			HAL_UART_Transmit(&huart2, (uint8_t*)usr_msg, strlen(usr_msg), HAL_MAX_DELAY);
+
 
 		}
 	}
@@ -214,7 +223,7 @@ void TIMER6_Init()
 	 * + Counter Mode
 	 * + Period
 	 */
-	htimer6.Init.Prescaler = 9;
+	htimer6.Init.Prescaler = 25000-1;
 	htimer6.Init.CounterMode = TIM_COUNTERMODE_UP;
 	// Deduct 1 because of the one more up cycle
 	htimer6.Init.Period = 50-1;
@@ -233,12 +242,14 @@ void SystemClockConfig(uint8_t SYSCLKFreq)
 
 	// Reset the osc_init to avoid garbage value
 	memset(&osc_init,0,sizeof(osc_init));
+	// Reset clk_init to avoid garbage value
+	memset(&clk_init,0,sizeof(clk_init));
 	// Config for the oscillator (PLL, with clock source HSI)
 	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_HSI;
 	osc_init.HSEState = RCC_HSE_ON;
 	osc_init.HSIState = RCC_HSI_ON;
-	// Config for LSEState
-	osc_init.LSEState = RCC_LSE_ON;
+	// Config for LSEState (Does not apply since there is no LSE on stm32f4 discovery board)
+	//osc_init.LSEState = RCC_LSE_ON;
 
 	switch (SYSCLKFreq) {
 		case SYSCLK_FREQ_50_MHz:
