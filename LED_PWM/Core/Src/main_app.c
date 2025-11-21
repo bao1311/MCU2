@@ -91,7 +91,6 @@ void TIM2_Init()
 	memset(&tim2OC_Init, 0,sizeof(tim2OC_Init));
 	tim2OC_Init.OCMode = TIM_OCMODE_PWM1;
 	tim2OC_Init.OCPolarity = TIM_OCPOLARITY_HIGH;
-	// Duty Cycle of 25%
 	tim2OC_Init.Pulse = htim2.Init.Period * 25 / 100;
 
 	// Config Channel 1 of TIM2
