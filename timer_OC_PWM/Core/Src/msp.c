@@ -112,3 +112,24 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 
 	}
 }
+
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim)
+{
+	__HAL_RCC_TIM2_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+
+	GPIO_InitTypeDef gpio;
+	memset(&gpio,0,sizeof(gpio));
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Alternate = GPIO_AF1_TIM2;
+	gpio.Pin = GPIO_PIN_0;
+
+	HAL_GPIO_Init(GPIOA, &gpio);
+
+	if (htim->Instance == TIM2)
+	{
+		HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(TIM2_IRQn);
+	}
+
+}
