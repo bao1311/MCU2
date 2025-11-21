@@ -78,7 +78,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 void TIM2_Init()
 {
 	htim2.Instance = TIM2;
-	htim2.Init.Prescaler = 50000-1;
+	htim2.Init.Prescaler = 1;
 	htim2.Init.Period = 0xFFFFFFFF;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
 
