@@ -30,11 +30,34 @@ void Error_Handler();
 void TIM2_Init();
 void Btn_Init();
 void CAN1_Init();
+void CAN1_Tx();
 
 /*
  * ********** Function Implementation **********
  */
 
+/*
+ * @fn					- CAN1_Tx
+ * @brief				- Send Data through CAN1
+ * @param				-
+ * @return				-
+ */
+void CAN1_Tx()
+{
+	CAN_TxHeaderTypeDef can_tx;
+	uint8_t arr[5] = {'H','E','L','L','O'};
+	uint32_t MailBox;
+	can_tx.DLC = 5;
+	can_tx.StdId = 0x65;
+	can_tx.RTR = CAN_RTR_DATA;
+	can_tx.IDE = CAN_ID_STD;
+	if (HAL_CAN_AddTxMessage(&hcan1, can_tx, arr, &MailBox) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	// Wait until the TxMessage got Transmitted
+	while (HAL_CAN_IsTxMessagePending(&hcan1, MailBox));
+}
 /*
  * @fn					- CAN1_Init
  * @brief				- Implementation of CAN1 Init code
@@ -315,6 +338,16 @@ int main(void)
 	// PB11
 	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_4);
 
+	// CAN Init
+	CAN1_Init();
+
+	// Start the CAN so it switch from Initialization -> Normal mode
+	if (HAL_CAN_Start(&hcan1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	// CAN TX message
+	CAN1_Tx();
 	while (1)
 	{
 
