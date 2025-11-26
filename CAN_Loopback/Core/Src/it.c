@@ -8,7 +8,6 @@
 #include "main.h"
 #include <stdio.h>
 extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim4;
 
 int _write(int file, char *ptr, int len)
 {
@@ -25,9 +24,4 @@ void SysTick_Handler(void)
 void TIM2_IRQHandler()
 {
 	HAL_TIM_IRQHandler(&htim2);
-}
-
-void TIM4_IRQHandler()
-{
-	HAL_TIM_IRQHandler(&htim4);
 }

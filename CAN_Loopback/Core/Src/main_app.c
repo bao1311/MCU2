@@ -78,35 +78,45 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 void TIM2_Init()
 {
 	htim2.Instance = TIM2;
-	htim2.Init.Prescaler = 50000-1;
-	htim2.Init.Period = 1000 - 1;
+	htim2.Init.Prescaler = 1;
+	htim2.Init.Period = 0xFFFFFFFF;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
 
-	if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+	if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
 	TIM_OC_InitTypeDef tim2OC_Init;
 	memset(&tim2OC_Init, 0,sizeof(tim2OC_Init));
-	tim2OC_Init.OCMode = TIM_OCMODE_PWM1;
+	tim2OC_Init.OCMode = TIM_OCMODE_TOGGLE;
 	tim2OC_Init.OCPolarity = TIM_OCPOLARITY_HIGH;
-	// Duty Cycle of 25%
-	tim2OC_Init.Pulse = htim2.Init.Period * 25 / 100;
-
+	tim2OC_Init.Pulse = ch1_pulse;
 	// Config Channel 1 of TIM2
-	if (HAL_TIM_PWM_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_1) != HAL_OK)
+	if (HAL_TIM_OC_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_1) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	//
-	tim2OC_Init.Pulse = htim2.Init.Period * 25 / 100;
 
-	// Config Channel 1 of TIM2
-	if (HAL_TIM_PWM_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_1) != HAL_OK)
+
+	tim2OC_Init.Pulse = ch2_pulse;
+	if (HAL_TIM_OC_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_2) != HAL_OK)
 	{
 		Error_Handler();
 	}
+
+	tim2OC_Init.Pulse = ch3_pulse;
+	if (HAL_TIM_OC_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_3) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	tim2OC_Init.Pulse = ch4_pulse;
+	if (HAL_TIM_OC_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_4) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
 }
 /*
  * @fn					- SystemClock_Config
@@ -258,7 +268,13 @@ int main(void)
 	UART2_Init();
 	// Start the Output Capture
 	// PA0
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_1);
+	// PA1
+	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_2);
+	// PB10
+	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_3);
+	// PB11
+	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_4);
 
 	while (1)
 	{
