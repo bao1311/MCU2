@@ -19,6 +19,7 @@ uint32_t ch4_pulse = 3125;
  */
 UART_HandleTypeDef huart2;
 TIM_HandleTypeDef htim2;
+CAN_HandleTypeDef hcan1;
 /*
  * ********* API Prototype **********
  */
@@ -28,10 +29,48 @@ void delay_us(uint32_t microsec);
 void Error_Handler();
 void TIM2_Init();
 void Btn_Init();
+void CAN1_Init();
 
 /*
  * ********** Function Implementation **********
  */
+
+/*
+ * @fn					- CAN1_Init
+ * @brief				- Implementation of CAN1 Init code
+ * @param				-
+ * @return				-
+ */
+void CAN1_Init()
+{
+	/*
+	 * CAN1 Specs:
+	 * - Bit Rate: 500bps
+	 * - Prescaler: 5
+	 * - No of time quanta: 10
+	 * - Seg 1: 8
+	 * - Seg 2: 1
+	 * -
+	 */
+	hcan1.Instance = CAN1;
+
+	hcan1.Init.AutoBusOff = DISABLE;
+	hcan1.Init.AutoRetransmission = ENABLE;
+	hcan1.Init.AutoWakeUp = DISABLE;
+	hcan1.Init.Mode = CAN_MODE_LOOPBACK;
+	hcan1.Init.Prescaler = 5;
+	hcan1.Init.ReceiveFifoLocked = DISABLE;
+	hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+	hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
+	hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+	hcan1.Init.TimeTriggeredMode = DISABLE;
+	hcan1.Init.TransmitFifoPriority = DISABLE;
+
+	if (HAL_CAN_Init(&hcan1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
