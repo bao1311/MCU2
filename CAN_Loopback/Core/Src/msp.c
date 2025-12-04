@@ -7,6 +7,32 @@
 
 #include "main.h"
 
+/*
+ * @fn					- HAL_CAN_MspInit
+ * @brief				- Low level initialization of CAN bus
+ * @param				-
+ * @return				-
+ */
+void HAL_CAN_MspInit(CAN_HandleTypeDef *hcan)
+{
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_CAN1_CLK_ENABLE();
+
+	GPIO_InitTypeDef can;
+	can.Mode = GPIO_MODE_AF_PP;
+	can.Pull = GPIO_PULLUP;
+	can.Alternate = GPIO_AF9_CAN1;
+	can.Pin = GPIO_PIN_8;
+	// PB8 -> CAN1_RX
+	HAL_GPIO_Init(GPIOB, &can);
+
+	// PB9 -> CAN1_TX
+	can.Pin = GPIO_PIN_9;
+
+	HAL_GPIO_Init(GPIOB, &can);
+
+}
+
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {
@@ -19,6 +45,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 	__HAL_RCC_USART2_CLK_ENABLE();
 	// Enable GPIO Clock
 	__HAL_RCC_GPIOA_CLK_ENABLE();
+
+	__HAL_RCC_GPIOD_CLK_ENABLE();
 	// Pin Configurations
 	GPIO_InitTypeDef gpio;
 	gpio.Alternate = GPIO_AF7_USART2;
@@ -27,12 +55,12 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 	gpio.Speed = GPIO_SPEED_FAST;
 
 	// USART2_TX -> PA2
-	gpio.Pin = GPIO_PIN_2;
-	HAL_GPIO_Init(GPIOA, &gpio);
+	gpio.Pin = GPIO_PIN_5;
+	HAL_GPIO_Init(GPIOD, &gpio);
 
 	// USART2_RX -> PA3
-	gpio.Pin = GPIO_PIN_3;
-	HAL_GPIO_Init(GPIOA, &gpio);
+	gpio.Pin = GPIO_PIN_6;
+	HAL_GPIO_Init(GPIOD, &gpio);
 
 	// NVIC Configuration Enable Interrupt
 	HAL_NVIC_EnableIRQ(USART2_IRQn);

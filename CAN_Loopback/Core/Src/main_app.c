@@ -1,4 +1,5 @@
 #include "main.h"
+#include <string.h>
 
 /*
  * ********* Pulse value for each channel *********
@@ -31,11 +32,64 @@ void TIM2_Init();
 void Btn_Init();
 void CAN1_Init();
 void CAN1_Tx();
-
+void CAN1_Rx();
+void CAN_filter();
 /*
  * ********** Function Implementation **********
  */
 
+/*
+ * @fn					- CAN_filter
+ * @brief				- This function filter CAN message
+ * @param				-
+ * @return				-
+ */
+void CAN_filter()
+{
+	CAN_FilterTypeDef can_filter;
+	// We are using accept all mode in this filter
+	can_filter.FilterIdHigh = 0x0000;
+	can_filter.FilterIdLow = 0x0000;
+	can_filter.FilterMaskIdLow = 0x0000;
+	can_filter.FilterMaskIdHigh = 0x0000;
+	can_filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	can_filter.FilterBank = 0;
+	can_filter.FilterMode = CAN_FILTERMODE_IDMASK;
+	can_filter.FilterScale = CAN_FILTERSCALE_32BIT;
+	can_filter.FilterActivation = CAN_FILTER_ENABLE;
+
+	if (HAL_CAN_ConfigFilter(&hcan1, &can_filter) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+}
+/*
+ * @fn					- CAN1_Rx
+ * @brief				- Receive the message from the mailbox
+ * @param				-
+ * @return				-
+ */
+void CAN1_Rx()
+{
+	char msg[50];
+	uint8_t arr[5];
+	CAN_RxHeaderTypeDef can_rx;
+	// Initialize the can_rx data structure
+	can_rx.StdId = 0x65;
+	can_rx.DLC = 5;
+	can_rx.RTR = CAN_RTR_DATA;
+	can_rx.IDE = CAN_ID_STD;
+	// Wait until the mailbox got filled with message
+	while (!HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0));
+	// Receive the message
+	if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx, arr) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	sprintf(msg,"Message Received\n");
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+}
 /*
  * @fn					- CAN1_Tx
  * @brief				- Send Data through CAN1
@@ -45,18 +99,21 @@ void CAN1_Tx();
 void CAN1_Tx()
 {
 	CAN_TxHeaderTypeDef can_tx;
+	char msg[50];
 	uint8_t arr[5] = {'H','E','L','L','O'};
 	uint32_t MailBox;
 	can_tx.DLC = 5;
 	can_tx.StdId = 0x65;
 	can_tx.RTR = CAN_RTR_DATA;
 	can_tx.IDE = CAN_ID_STD;
-	if (HAL_CAN_AddTxMessage(&hcan1, can_tx, arr, &MailBox) != HAL_OK)
+	if (HAL_CAN_AddTxMessage(&hcan1, &can_tx, arr, &MailBox) != HAL_OK)
 	{
 		Error_Handler();
 	}
 	// Wait until the TxMessage got Transmitted
 	while (HAL_CAN_IsTxMessagePending(&hcan1, MailBox));
+	sprintf(msg,"Message Transmitted\n");
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 }
 /*
  * @fn					- CAN1_Init
@@ -287,6 +344,14 @@ void SystemClock_Config(uint8_t SYSCLKFreq)
  */
 void UART2_Init()
 {
+	//Info:
+	/*
+	 * 3V3 -> Green
+	 * TX -> Yellow
+	 * RX -> Orange
+	 * GND -> Red
+	 *
+	 */
 	huart2.Instance = USART2;
 	huart2.Init.BaudRate = 115200;
 	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
@@ -317,26 +382,18 @@ int main(void)
 	char debug_msg[80] = "";
 	HAL_Init();
 	SystemClock_Config(SYSCLK_FREQ_50_MHz);
-
+	char msg[50];
 	// System clock check
-	 printf("System clock: %lu Hz\r\n", HAL_RCC_GetSysClockFreq());
+	 //printf("System clock: %lu Hz\r\n", HAL_RCC_GetSysClockFreq());
 	// LED Init
-	LED_Init();
-	// Verify if the orange led is turned on
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+	//LED_Init();
 	// Timer 2 Initialization
-	TIM2_Init();
+	//TIM2_Init();
 	// GPIO Init for the DS18b20 on STM32 discovery board
 	UART2_Init();
-	// Start the Output Capture
-	// PA0
-	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_1);
-	// PA1
-	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_2);
-	// PB10
-	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_3);
-	// PB11
-	HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_4);
+	// Test
+	sprintf(msg,"Inside main function\n");
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
 	// CAN Init
 	CAN1_Init();
@@ -346,8 +403,12 @@ int main(void)
 	{
 		Error_Handler();
 	}
+	// CAN filtering
+	CAN_filter();
 	// CAN TX message
 	CAN1_Tx();
+	// CAN RX message (Loop back so everything we sent, we received it back
+	CAN1_Rx();
 	while (1)
 	{
 
