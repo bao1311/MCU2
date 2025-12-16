@@ -82,6 +82,10 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef *htim)
 	}
 }
 
+void HAL_I2S_MspInit(I2S_HandleTypeDef* hi2s)
+{
+
+}
 
 void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 {

@@ -26,26 +26,3 @@ void TIM2_IRQHandler()
 	HAL_TIM_IRQHandler(&htim2);
 }
 
-void CAN1_TX_IRQHandler()
-{
-	HAL_CAN_IRQHandler(&hcan1);
-
-}
-
-void CAN1_RX0_IRQHandler()
-{
-
-	HAL_CAN_IRQHandler(&hcan1);
-}
-
-void CAN1_RX1_IRQHandler()
-{
-
-	HAL_CAN_IRQHandler(&hcan1);
-}
-
-void CAN1_SCE_IRQHandler()
-{
-
-	HAL_CAN_IRQHandler(&hcan1);
-}

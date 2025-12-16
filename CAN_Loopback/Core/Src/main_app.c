@@ -377,6 +377,7 @@ void LED_Init()
 	HAL_GPIO_Init(GPIOD, &led);
 }
 
+
 int main(void)
 {
 	char debug_msg[80] = "";
@@ -398,17 +399,22 @@ int main(void)
 	// CAN Init
 	CAN1_Init();
 
+	// CAN filtering
+	CAN_filter();
+
+	if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF) != HAL_OK)
+	{
+		Error_Handler();
+	}
 	// Start the CAN so it switch from Initialization -> Normal mode
 	if (HAL_CAN_Start(&hcan1) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	// CAN filtering
-	CAN_filter();
 	// CAN TX message
 	CAN1_Tx();
 	// CAN RX message (Loop back so everything we sent, we received it back
-	CAN1_Rx();
+//	CAN1_Rx();
 	while (1)
 	{
 

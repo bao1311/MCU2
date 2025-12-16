@@ -65,6 +65,11 @@ void TIM4_Init()
 	{
 		Error_Handler();
 	}
+	// Add Channel 3 config for TIM4
+	if (HAL_TIM_PWM_ConfigChannel(&htim4, &tim4OC_Init, TIM_CHANNEL_4) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
@@ -85,7 +90,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 
 	}
 	// Channel 3 Callback
-	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
+	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
 	{
 
 		uint32_t ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_3);
@@ -128,7 +133,7 @@ void TIM2_Init()
 
 
 	// Config Channel 1 of TIM2
-	if (HAL_TIM_PWM_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_1) != HAL_OK)
+	if (HAL_TIM_PWM_ConfigChannel(&htim2, &tim2OC_Init, TIM_CHANNEL_4) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -263,6 +268,9 @@ void LED_Init()
 	led.Mode = GPIO_MODE_OUTPUT_PP;
 	led.Pin = GPIO_PIN_13;
 	HAL_GPIO_Init(GPIOD, &led);
+
+	led.Pin = GPIO_PIN_12;
+	HAL_GPIO_Init(GPIOD, &led);
 }
 
 int main(void)
@@ -286,8 +294,10 @@ int main(void)
 	UART2_Init();
 	// Start the Output Capture
 	// PA0
-//	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	// For Green LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	// For Orange LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
 	// LED bright == 0
 	while (1)
@@ -297,6 +307,7 @@ int main(void)
 		while (brightness < htim4.Init.Period)
 		{
 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, brightness);
+			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, brightness);
 			brightness+= 10;
 			HAL_Delay(1);
 		}
@@ -305,6 +316,7 @@ int main(void)
 		while (brightness > 0)
 		{
 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, brightness);
+			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, brightness);
 			brightness-=10;
 			HAL_Delay(1);
 		}

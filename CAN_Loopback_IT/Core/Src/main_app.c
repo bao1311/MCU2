@@ -99,7 +99,8 @@ void CAN1_Rx()
 void CAN1_Tx()
 {
 	CAN_TxHeaderTypeDef can_tx;
-	char msg[50];
+	memset(&can_tx,0,sizeof(can_tx));
+	char msg[50]="";
 	uint8_t arr[5] = {'H','E','L','L','O'};
 	uint32_t MailBox;
 	can_tx.DLC = 5;
@@ -112,7 +113,7 @@ void CAN1_Tx()
 	}
 	// Wait until the TxMessage got Transmitted
 	while (HAL_CAN_IsTxMessagePending(&hcan1, MailBox));
-	sprintf(msg,"Message Transmitted\n");
+	sprintf(msg,"Message Transmitted\r\n");
 	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 }
 /*
@@ -397,18 +398,21 @@ int main(void)
 
 	// CAN Init
 	CAN1_Init();
-
-	// Start the CAN so it switch from Initialization -> Normal mode
-	if (HAL_CAN_Start(&hcan1) != HAL_OK)
+	if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_BUSOFF | CAN_IT_RX_FIFO0_MSG_PENDING))
 	{
 		Error_Handler();
 	}
 	// CAN filtering
 	CAN_filter();
+	// Start the CAN so it switch from Initialization -> Normal mode
+	if (HAL_CAN_Start(&hcan1) != HAL_OK)
+	{
+		Error_Handler();
+	}
 	// CAN TX message
 	CAN1_Tx();
 	// CAN RX message (Loop back so everything we sent, we received it back
-	CAN1_Rx();
+//	CAN1_Rx();
 	while (1)
 	{
 
@@ -423,6 +427,38 @@ void delay_us(uint32_t microsec)
 	{
 		;
 	}
+}
+
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	char msg[50] = "";
+	sprintf(msg, "Just sent message from Mailbox 0\r\n");
+	HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+}
+
+
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+
+	char msg[50] = "";
+	sprintf(msg, "Just sent message from Mailbox 1\r\n");
+	HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+}
+
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+
+	char msg[50] = "";
+	sprintf(msg, "Just sent message from Mailbox 2\r\n");
+	HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+
+	char msg[50] = "";
+	sprintf(msg, "CAN Bus error\r\n");
+	HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
 }
 
 

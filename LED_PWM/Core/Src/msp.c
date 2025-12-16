@@ -145,6 +145,10 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim)
 
 		HAL_GPIO_Init(GPIOD, &gpio);
 
+
+		gpio.Pin = GPIO_PIN_15;
+
+		HAL_GPIO_Init(GPIOD, &gpio);
 		HAL_NVIC_SetPriority(TIM4_IRQn, 15, 0);
 		HAL_NVIC_EnableIRQ(TIM4_IRQn);
 
